@@ -1,0 +1,5 @@
+{
+  "name": "Fuel Control Pro",
+  "description": "An application to track fuel consumption, vehicle mileage (km/l), and earnings. Log your refueling stops and trips to gain insights into your vehicle's performance and profitability.",
+  "requestFramePermissions": []
+}
