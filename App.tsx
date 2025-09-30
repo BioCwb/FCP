@@ -19,11 +19,13 @@ const App: React.FC = () => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             if (currentUser) {
+                // Create a plain, serializable object to avoid circular reference errors.
+                const { uid, displayName, email, photoURL } = currentUser;
                 setUser({
-                    uid: currentUser.uid,
-                    displayName: currentUser.displayName,
-                    email: currentUser.email,
-                    photoURL: currentUser.photoURL,
+                    uid,
+                    displayName,
+                    email,
+                    photoURL,
                 });
             } else {
                 setUser(null);
