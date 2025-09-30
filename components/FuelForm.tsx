@@ -3,7 +3,7 @@ import { FuelLog } from '../types';
 import { FuelIcon, RoadIcon } from './icons';
 
 interface FuelFormProps {
-  addFuelLog: (log: Omit<FuelLog, 'id' | 'kmPerLiter' | 'pricePerLiter' | 'distance'>) => void;
+  addFuelLog: (log: Omit<FuelLog, 'id' | 'kmPerLiter' | 'pricePerLiter' | 'distance'>) => Promise<void>;
   lastOdometer: number;
 }
 
@@ -13,6 +13,7 @@ const FuelForm: React.FC<FuelFormProps> = ({ addFuelLog, lastOdometer }) => {
   const [totalPrice, setTotalPrice] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pricePerLiter = useMemo(() => {
     const litersNum = parseFloat(liters);
@@ -32,7 +33,7 @@ const FuelForm: React.FC<FuelFormProps> = ({ addFuelLog, lastOdometer }) => {
   }, [odometer, lastOdometer]);
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const odometerNum = parseFloat(odometer);
     if (lastOdometer > 0 && odometerNum <= lastOdometer) {
@@ -40,15 +41,23 @@ const FuelForm: React.FC<FuelFormProps> = ({ addFuelLog, lastOdometer }) => {
       return;
     }
     setError('');
-    addFuelLog({
-      date,
-      odometer: odometerNum,
-      liters: parseFloat(liters),
-      totalPrice: parseFloat(totalPrice),
-    });
-    setOdometer('');
-    setLiters('');
-    setTotalPrice('');
+    setIsSubmitting(true);
+    try {
+        await addFuelLog({
+            date,
+            odometer: odometerNum,
+            liters: parseFloat(liters),
+            totalPrice: parseFloat(totalPrice),
+        });
+        setOdometer('');
+        setLiters('');
+        setTotalPrice('');
+    } catch (err) {
+        console.error(err);
+        setError('Falha ao salvar. Verifique sua conexão ou as regras de segurança do Firestore.');
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const hasDistance = distanceTraveled !== null;
@@ -130,8 +139,8 @@ const FuelForm: React.FC<FuelFormProps> = ({ addFuelLog, lastOdometer }) => {
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-          Salvar Abastecimento
+        <button type="submit" disabled={isSubmitting} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">
+          {isSubmitting ? 'Salvando...' : 'Salvar Abastecimento'}
         </button>
       </form>
     </div>

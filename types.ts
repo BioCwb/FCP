@@ -18,3 +18,10 @@ export interface TripLog {
 }
 
 export type Log = (FuelLog & { type: 'fuel' }) | (TripLog & { type: 'trip' });
+
+export interface AppUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+}

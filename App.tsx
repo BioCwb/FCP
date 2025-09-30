@@ -1,29 +1,36 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FuelLog, TripLog, Log } from './types';
+import { FuelLog, TripLog, Log, AppUser } from './types';
 import FuelForm from './components/FuelForm';
 import TripForm from './components/TripForm';
 import HistoryTable from './components/HistoryTable';
 import Dashboard from './components/Dashboard';
 import Auth from './components/Auth';
 import { auth, db } from './firebaseConfig';
-import { onAuthStateChanged, User } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const App: React.FC = () => {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
     const [tripLogs, setTripLogs] = useState<TripLog[]>([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-            if (!currentUser) {
+            if (currentUser) {
+                setUser({
+                    uid: currentUser.uid,
+                    displayName: currentUser.displayName,
+                    email: currentUser.email,
+                    photoURL: currentUser.photoURL,
+                });
+            } else {
+                setUser(null);
                 setFuelLogs([]);
                 setTripLogs([]);
             }
+            setLoading(false);
         });
         return () => unsubscribe();
     }, []);
@@ -67,6 +74,8 @@ const App: React.FC = () => {
             const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FuelLog));
             const calculatedLogs = recalculateAllMetrics(logs);
             setFuelLogs(calculatedLogs);
+        }, (error) => {
+            console.error("Firestore (fuelLogs) subscription error:", error);
         });
 
         const tripLogsCol = collection(db, 'users', user.uid, 'tripLogs');
@@ -74,6 +83,8 @@ const App: React.FC = () => {
         const unsubscribeTrip = onSnapshot(qTrip, (snapshot) => {
             const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TripLog));
             setTripLogs(logs);
+        }, (error) => {
+            console.error("Firestore (tripLogs) subscription error:", error);
         });
 
         return () => {
@@ -84,11 +95,12 @@ const App: React.FC = () => {
 
 
     const addFuelLog = useCallback(async (log: Omit<FuelLog, 'id' | 'kmPerLiter' | 'pricePerLiter' | 'distance'>) => {
-        if (!user) return;
+        if (!user) return Promise.reject(new Error("User not authenticated"));
         try {
             await addDoc(collection(db, 'users', user.uid, 'fuelLogs'), log);
         } catch (error) {
             console.error("Error adding fuel log: ", error);
+            throw error; // Re-throw the error to be caught by the form
         }
     }, [user]);
 
@@ -98,7 +110,7 @@ const App: React.FC = () => {
     }, [fuelLogs]);
 
     const addTripLog = useCallback(async (log: Omit<TripLog, 'id'>) => {
-        if (!user) return;
+        if (!user) return Promise.reject(new Error("User not authenticated"));
         const newLog = { 
             ...log, 
             odometer: lastOdometer 
@@ -107,6 +119,7 @@ const App: React.FC = () => {
             await addDoc(collection(db, 'users', user.uid, 'tripLogs'), newLog);
         } catch (error) {
             console.error("Error adding trip log: ", error);
+            throw error; // Re-throw the error to be caught by the form
         }
     }, [user, lastOdometer]);
 
@@ -164,9 +177,9 @@ const App: React.FC = () => {
                 </div>
                  {user && (
                     <div className="flex items-center mt-4 sm:mt-0">
-                        <img src={user.photoURL || undefined} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full mr-4" />
+                        <img src={user.photoURL || `https://api.dicebear.com/8.x/initials/svg?seed=${user.displayName || user.email}`} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full mr-4 bg-slate-700" />
                         <div>
-                            <p className="font-semibold">{user.displayName}</p>
+                            <p className="font-semibold">{user.displayName || 'Usuário'}</p>
                             <button onClick={handleLogout} className="text-sm text-cyan-400 hover:underline">Logout</button>
                         </div>
                     </div>
