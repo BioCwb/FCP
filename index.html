@@ -15,6 +15,15 @@
   }
 }
 </script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        // This global assignment is necessary to make firebase available to the rest of the app
+        // since we are not using a bundler.
+        window.firebase = { initializeApp, getAuth, getFirestore };
+    </script>
 </head>
 <body class="bg-slate-900 text-white">
     <div id="root"></div>

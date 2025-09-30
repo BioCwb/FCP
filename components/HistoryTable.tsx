@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Log } from '../types';
 import { FuelIcon, MoneyIcon, CalendarIcon } from './icons';
@@ -17,7 +18,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ logs, deleteLog }) => {
     );
   }
 
-  const sortedLogs = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || ('odometer' in b ? b.odometer : 0) - ('odometer' in a ? a.odometer : 0));
+  const sortedLogs = [...logs].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if(dateB !== dateA) return dateB - dateA;
+    const odometerA = 'odometer' in a ? a.odometer : 0;
+    const odometerB = 'odometer' in b ? b.odometer : 0;
+    return odometerB - odometerA;
+  });
 
   return (
     <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
@@ -46,7 +54,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ logs, deleteLog }) => {
                 <td className="p-3 text-slate-300 whitespace-nowrap">
                     <div className="flex items-center">
                         <CalendarIcon />
-                        {/* FIX: Corrected typo from toLocaleDateDateString to toLocaleDateString */}
+                        {/* Handle date string by adding time to prevent timezone issues */}
                         {new Date(log.date + 'T00:00:00').toLocaleDateString()}
                     </div>
                 </td>
